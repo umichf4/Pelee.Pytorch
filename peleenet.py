@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import torch
+import torchsummary
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init as init
@@ -337,17 +338,17 @@ def build_net(phase, size, config=None):
     return PeleeNet(phase, size, config)
 
 if __name__ == '__main__':
-    net = PeleeNet()
-    print(net)
-    # net.features.load_state_dict(torch.load('./peleenet.pth'))
-    state_dict = torch.load('./weights/peleenet.pth')
-    # print(state_dict.keys())
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        new_state_dict[k[9:]] = v
+    net = build_net('test',304)
+    torchsummary.summary(net, (3, 224, 224))
+    # # net.features.load_state_dict(torch.load('./peleenet.pth'))
+    # state_dict = torch.load('./weights/peleenet.pth')
+    # # print(state_dict.keys())
+    # new_state_dict = OrderedDict()
+    # for k, v in state_dict.items():
+    #     new_state_dict[k[9:]] = v
 
-    torch.save(new_state_dict, './weights/peleenet_new.pth')
-    net.features.load_state_dict(new_state_dict)
-    inputs = torch.randn(2, 3, 304, 304)
-    out = net(inputs)
-    # print(out.size())
+    # torch.save(new_state_dict, './weights/peleenet_new.pth')
+    # net.features.load_state_dict(new_state_dict)
+    # inputs = torch.randn(2, 3, 304, 304)
+    # out = net(inputs)
+    # # print(out.size())

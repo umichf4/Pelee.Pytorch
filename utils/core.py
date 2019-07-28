@@ -41,7 +41,7 @@ def get_min_max_sizes(min_ratio, max_ratio, input_size, mbox_source_num):
     step = int(math.floor(max_ratio - min_ratio) / (mbox_source_num - 2))
     min_sizes = list()
     max_sizes = list()
-    for ratio in xrange(min_ratio, max_ratio + 1, step):
+    for ratio in range(min_ratio, max_ratio + 1, step):
         min_sizes.append(input_size * ratio / 100)
         max_sizes.append(input_size * (ratio + step) / 100)
 
@@ -120,17 +120,18 @@ def get_dataloader(cfg, dataset, setname='train_sets'):
     Dataloader_function = {'VOC': VOCDetection, 'COCO': COCODetection}
     _Dataloader_function = Dataloader_function[dataset]
     if setname == 'train_sets':
-        dataset = _Dataloader_function(cfg.COCOroot if dataset == 'COCO' else cfg.VOCroot,
+        img_dataset = _Dataloader_function(cfg.COCOroot if dataset == 'COCO' else cfg.VOCroot,
                                        getattr(cfg.dataset, dataset)[setname], _preproc)
     else:
-        dataset = _Dataloader_function(cfg.COCOroot if dataset == 'COCO' else cfg.VOCroot,
-                                       getattr(cfg.dataset, dataset)[setname], None)
-    return dataset
+        img_dataset = _Dataloader_function(cfg.COCOroot if dataset == 'COCO' else cfg.VOCroot,
+                                       getattr(cfg.dataset, dataset)[setname], _preproc)
+
+    return img_dataset
 
 
 def print_train_log(iteration, print_epochs, info_list):
     if iteration % print_epochs == 0:
-        cprint('Time:{}||Epoch:{}||EpochIter:{}/{}||Iter:{}||Loss_L:{:.4f}||Loss_C:{:.4f}||Batch_Time:{:.4f}||LR:{:.7f}'.format(*info_list), 'green')
+        cprint('Time:{}||Epoch:{}||EpochIter:{}/{}||Iter:{}||Batch_Time:{:.4f}||LR:{:.7f}\nLoss_L:{:.4f}||Loss_C:{:.4f}||Loss_L_val:{:.4f}||Loss_C_val:{:.4f}'.format(*info_list), 'green')
 
 
 def print_info(info, _type=None):

@@ -26,12 +26,15 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
+# VOC_CLASSES = ('__background__',  # always index 0
+#                'aeroplane', 'bicycle', 'bird', 'boat',
+#                'bottle', 'bus', 'car', 'cat', 'chair',
+#                'cow', 'diningtable', 'dog', 'horse',
+#                'motorbike', 'person', 'pottedplant',
+#                'sheep', 'sofa', 'train', 'tvmonitor')
+
 VOC_CLASSES = ('__background__',  # always index 0
-               'aeroplane', 'bicycle', 'bird', 'boat',
-               'bottle', 'bus', 'car', 'cat', 'chair',
-               'cow', 'diningtable', 'dog', 'horse',
-               'motorbike', 'person', 'pottedplant',
-               'sheep', 'sofa', 'train', 'tvmonitor')
+               '1')
 
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
@@ -126,6 +129,7 @@ class VOCDetection(data.Dataset):
     def __getitem__(self, index):
         img_id = self.ids[index]
         target = ET.parse(self._annopath % img_id).getroot()
+        # print(self._imgpath % img_id)
         img = cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
         height, width, _ = img.shape
 

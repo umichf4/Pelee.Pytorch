@@ -17,15 +17,15 @@ model = dict(
         aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
         anchor_nums=[6, 6, 6, 6, 6]
     ),
-    num_classes=21,
-    save_epochs=10,
+    num_classes=2,
+    save_epochs=100,
     weights_save='weights/',
     pretained_model='weights/peleenet.pth'
 )
 
 train_cfg = dict(
     cuda=True,
-    per_batch_size=64,
+    per_batch_size=32,
     lr=5e-3,
     gamma=0.1,
     end_lr=5e-6,
@@ -56,8 +56,10 @@ optimizer = dict(type='SGD', momentum=0.9, weight_decay=0.0005)
 
 dataset = dict(
     VOC=dict(
-        train_sets=[('2007', 'trainval'), ('2012', 'trainval')],
-        eval_sets=[('2007', 'test')],
+        # train_sets=[('2007', 'trainval'), ('2012', 'trainval')],
+        train_sets=[('2007', 'train')],
+        eval_sets=[('2007', 'val')],
+        test_sets=[('2007', 'test')],
     ),
     COCO=dict(
         train_sets=[('2014', 'train'), ('2014', 'valminusminival')],

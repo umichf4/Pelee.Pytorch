@@ -30,12 +30,12 @@ parser.add_argument('--resume_net', default=None,
 parser.add_argument('--resume_epoch', default=0, type=int,
                     help='resume iter for retraining')
 parser.add_argument('-t', '--tensorboard', type=bool,
-                    default=False, help='Use tensorborad to show the Loss Graph')
+                    default=True, help='Use tensorborad to show the Loss Graph')
 args = parser.parse_args()
 
 print_info('----------------------------------------------------------------------\n'
            '|                       Pelee Training Program                       |\n'
-           '----------------------------------------------------------------------', ['yellow', 'bold'])
+           '----------------------------------------------------------------------', ['red', 'bold'])
 
 logger = set_logger(args.tensorboard)
 global cfg
@@ -61,14 +61,16 @@ with torch.no_grad():
 if __name__ == '__main__':
     net.train()
     epoch = args.resume_epoch
-    print_info('===> Loading Dataset...', ['yellow', 'bold'])
+    print_info('===> Loading Dataset...', ['red', 'bold'])
     dataset = get_dataloader(cfg, args.dataset, 'train_sets')
+    dataset_val = get_dataloader(cfg, args.dataset, 'eval_sets')
+    # print(dataset_val._annopath,dataset_val._imgpath,dataset_val.root)
     epoch_size = len(dataset) // (cfg.train_cfg.per_batch_size * args.ngpu)
     max_iter = cfg.train_cfg.step_lr[-1] + 1
 
     stepvalues = cfg.train_cfg.step_lr
 
-    print_info('===> Training STDN on ' + args.dataset, ['yellow', 'bold'])
+    print_info('===> Training STDN on ' + args.dataset, ['red', 'bold'])
 
     start_iter = args.resume_epoch * epoch_size if args.resume_epoch > 0 else 0
     step_index = 0
@@ -76,13 +78,25 @@ if __name__ == '__main__':
         if start_iter > step:
             step_index += 1
 
-    for iteration in xrange(start_iter, max_iter):
+
+    batch_iterator_val = iter(data.DataLoader(dataset_val,
+                                          batch_size = 8,
+                                          shuffle=True,
+                                          num_workers=cfg.train_cfg.num_workers,
+                                          collate_fn=detection_collate
+                                          ))
+    images_val, targets_val = batch_iterator_val.next()  
+                                          
+
+    for iteration in range(start_iter, max_iter):
         if iteration % epoch_size == 0:
             batch_iterator = iter(data.DataLoader(dataset,
                                                   cfg.train_cfg.per_batch_size * args.ngpu,
                                                   shuffle=True,
                                                   num_workers=cfg.train_cfg.num_workers,
                                                   collate_fn=detection_collate))
+            
+
             if epoch % cfg.model.save_epochs == 0:
                 save_checkpoint(net, cfg, final=False,
                                 datasetname=args.dataset, epoch=epoch)
@@ -93,21 +107,32 @@ if __name__ == '__main__':
         lr = adjust_learning_rate(
             optimizer, step_index, cfg, args.dataset)
         images, targets = next(batch_iterator)
+        
         if cfg.train_cfg.cuda:
             images = images.cuda()
             targets = [anno.cuda() for anno in targets]
+        if cfg.train_cfg.cuda:
+            images_val = images_val.cuda()
+            targets_val = [anno.cuda() for anno in targets_val]
         out = net(images)
+        out_val = net(images_val)
         optimizer.zero_grad()
         loss_l, loss_c = criterion(out, priors, targets)
         loss = loss_l + loss_c
+        loss_l_val, loss_c_val = criterion(out_val, priors, targets_val)
+        loss_val = loss_l_val + loss_c_val
         write_logger({'loc_loss': loss_l.item(),
                       'conf_loss': loss_c.item(),
-                      'loss': loss.item()}, logger, iteration, status=args.tensorboard)
+                      'loc_loss_val': loss_l_val.item(),
+                      'conf_loss_val': loss_c_val.item(),
+                      'loss': loss.item(),
+                      'loss_val': loss_val.item()}, logger, iteration, status=args.tensorboard)
         loss.backward()
         optimizer.step()
         load_t1 = time.time()
         print_train_log(iteration, cfg.train_cfg.print_epochs,
-                        [time.ctime(), epoch, iteration % epoch_size, epoch_size, iteration, loss_l.item(), loss_c.item(), load_t1 - load_t0, lr])
+                        [time.ctime(), epoch, iteration % epoch_size, epoch_size, iteration, load_t1 - load_t0, lr,
+                        loss_l.item(), loss_c.item(), loss_l_val.item(), loss_c_val.item()])
 
     save_checkpoint(net, cfg, final=True,
                     datasetname=args.dataset, epoch=-1)

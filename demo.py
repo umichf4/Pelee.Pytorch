@@ -48,7 +48,9 @@ net.eval()
 
 num_classes = cfg.model.num_classes
 
+# imgs_path_dict = {'VOC': '/home/xiaohan/data/VOCdevkit/VOC2007/JPEGImages', 'COCO': 'imgs/COCO'}
 imgs_path_dict = {'VOC': 'imgs/VOC', 'COCO': 'imgs/COCO'}
+
 im_path = imgs_path_dict[args.dataset]
 
 imgs_result_path = os.path.join(im_path, 'im_res')
