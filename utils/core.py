@@ -84,7 +84,8 @@ def init_net(net, optimizer, cfg, resume_net):
         #         name = k
         #     new_state_dict[name] = v
         net.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if optimizer:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
 
 def set_optimizer(net, cfg):
