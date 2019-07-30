@@ -29,7 +29,7 @@ train_cfg = dict(
     lr=5e-3,
     gamma=0.1,
     end_lr=5e-6,
-    step_lr=[80000, 100000, 120000,160000],
+    step_lr=[40000, 50000, 60000, 70000],
     print_epochs=10,
     num_workers=8,
 )
@@ -56,7 +56,6 @@ optimizer = dict(type='SGD', momentum=0.9, weight_decay=0.0005)
 
 dataset = dict(
     VOC=dict(
-        # train_sets=[('2007', 'trainval'), ('2012', 'trainval')],
         train_sets=[('2007', 'train')],
         eval_sets=[('2007', 'val')],
         test_sets=[('2007', 'test')],

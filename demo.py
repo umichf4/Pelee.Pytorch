@@ -34,7 +34,7 @@ args = parser.parse_args()
 
 print_info(' ----------------------------------------------------------------------\n'
            '|                       Pelee Demo Program                              |\n'
-           ' ----------------------------------------------------------------------', ['yellow', 'bold'])
+           ' ----------------------------------------------------------------------', ['red', 'bold'])
 
 global cfg
 cfg = Config.fromfile(args.config)
@@ -43,7 +43,8 @@ print_info('The Anchor info: \n{}'.format(anchor_config))
 priorbox = PriorBox(anchor_config)
 net = build_net('test', cfg.model.input_size, cfg.model)
 init_net(net, cfg, args.trained_model)
-print_info('===> Finished constructing and loading model', ['yellow', 'bold'])
+print()
+print_info('===> Finished constructing and loading model', ['red', 'bold'])
 net.eval()
 
 num_classes = cfg.model.num_classes
@@ -87,7 +88,7 @@ label_config = {'VOC': VOC_CLASSES, 'COCO': tuple(['__background__'] + cats)}
 labels = label_config[args.dataset]
 
 
-def draw_detection(im, bboxes, scores, cls_inds, fps, thr=0.2):
+def draw_detection(im, bboxes, scores, cls_inds, fps, thr=0.9):
     imgcv = np.copy(im)
     h, w, _ = imgcv.shape
     for i, box in enumerate(bboxes):

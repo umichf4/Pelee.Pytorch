@@ -4,11 +4,12 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import torch
-import torchsummary
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init as init
 from collections import OrderedDict
+from torchsummary import summary
+from configs.CC import Config
 
 import math
 from utils.core import print_info
@@ -277,7 +278,7 @@ class PeleeNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
                 
         print_info(
-            'Initializing weights for [extras, resblock,multibox]...')
+            'Initializing weights for [extras, resblock, multibox]...')
         self.extras.apply(weights_init)
         self.resblock.apply(weights_init)
         self.loc.apply(weights_init)
@@ -338,17 +339,18 @@ def build_net(phase, size, config=None):
     return PeleeNet(phase, size, config)
 
 if __name__ == '__main__':
-    net = build_net('test',304)
-    torchsummary.summary(net, (3, 224, 224))
-    # # net.features.load_state_dict(torch.load('./peleenet.pth'))
+    cfg = Config.fromfile('configs/Pelee_VOC.py')
+    net = build_net('test', cfg.model.input_size, cfg.model)
+    print(net)
+    net.features.load_state_dict(torch.load('./weights/peleenet.pth'))
     # state_dict = torch.load('./weights/peleenet.pth')
-    # # print(state_dict.keys())
-    # new_state_dict = OrderedDict()
-    # for k, v in state_dict.items():
-    #     new_state_dict[k[9:]] = v
+    # print(state_dict.keys())
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        new_state_dict[k[9:]] = v
 
-    # torch.save(new_state_dict, './weights/peleenet_new.pth')
+    torch.save(new_state_dict, './weights/peleenet_new.pth')
     # net.features.load_state_dict(new_state_dict)
     # inputs = torch.randn(2, 3, 304, 304)
     # out = net(inputs)
-    # # print(out.size())
+    # print(out.size())

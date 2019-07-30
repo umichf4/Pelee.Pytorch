@@ -68,23 +68,23 @@ def anchors(config):
     return cfg
 
 
-def init_net(net, cfg, resume_net):
+def init_net(net, optimizer, cfg, resume_net):
     if cfg.model.init_net and not resume_net:
         net.init_model(cfg.model.pretained_model)
     else:
         print('Loading resume network...')
-        state_dict = torch.load(resume_net)
-
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            head = k[:7]
-            if head == 'module.':
-                name = k[7:]
-            else:
-                name = k
-            new_state_dict[name] = v
-        net.load_state_dict(new_state_dict, strict=False)
+        checkpoint = torch.load(resume_net)
+        # from collections import OrderedDict
+        # new_state_dict = OrderedDict()
+        # for k, v in state_dict.items():
+        #     head = k[:7]
+        #     if head == 'module.':
+        #         name = k[7:]
+        #     else:
+        #         name = k
+        #     new_state_dict[name] = v
+        net.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
 
 def set_optimizer(net, cfg):
@@ -131,7 +131,7 @@ def get_dataloader(cfg, dataset, setname='train_sets'):
 
 def print_train_log(iteration, print_epochs, info_list):
     if iteration % print_epochs == 0:
-        cprint('Time:{}||Epoch:{}||EpochIter:{}/{}||Iter:{}||Batch_Time:{:.4f}||LR:{:.7f}\nLoss_L:{:.4f}||Loss_C:{:.4f}||Loss_L_val:{:.4f}||Loss_C_val:{:.4f}'.format(*info_list), 'green')
+        cprint('Time:{}||Epoch:{}||EpochIter:{}/{}||Iter:{}||Batch_Time:{:.4f}||LR:{:.1e}\nLoss_L:{:.4f}||Loss_C:{:.4f}||Loss_L_val:{:.4f}||Loss_C_val:{:.4f}'.format(*info_list), 'green')
 
 
 def print_info(info, _type=None):
@@ -145,16 +145,18 @@ def print_info(info, _type=None):
         print(info)
 
 
-def save_checkpoint(net, cfg, final=True, datasetname='COCO', epoch=10):
+def save_checkpoint(net, optimizer, cfg, final=True, datasetname='COCO', epoch=10):
     weights_save_path = os.path.join(cfg.model.weights_save, datasetname)+'/'
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
     if final:
-        torch.save(net.state_dict(), weights_save_path +
-                   'Final_Pelee_{}_size{}.pth'.format(datasetname, cfg.model.input_size))
+        torch.save({'model_state_dict': net.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()}, 
+                    weights_save_path + 'Final_Pelee_{}_size{}.pth'.format(datasetname, cfg.model.input_size))
     else:
-        torch.save(net.state_dict(), weights_save_path +
-                   'Pelee_{}_size{}_epoch{}.pth'.format(datasetname, cfg.model.input_size, epoch))
+        torch.save({'model_state_dict': net.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()}, 
+                    weights_save_path + 'Pelee_{}_size{}_epoch{}.pth'.format(datasetname, cfg.model.input_size, epoch))
 
 
 def write_logger(info_dict, logger, iteration, status):

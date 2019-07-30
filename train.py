@@ -41,16 +41,19 @@ logger = set_logger(args.tensorboard)
 global cfg
 cfg = Config.fromfile(args.config)
 net = build_net('train', cfg.model.input_size, cfg.model)
-init_net(net, cfg, args.resume_net)  # init the network with pretrained
+optimizer = set_optimizer(net, cfg)
+init_net(net, optimizer, cfg, args.resume_net)  # init the network with pretrained
 if args.ngpu > 1:
     net = torch.nn.DataParallel(net)
 if cfg.train_cfg.cuda:
     net.cuda()
     cudnn.benckmark = True
 
-optimizer = set_optimizer(net, cfg)
 criterion = set_criterion(cfg)
 priorbox = PriorBox(anchors(cfg.model))
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+  optimizer, mode='min', factor=0.1, patience=1000, verbose=False, 
+  threshold=1e-4, threshold_mode='rel', cooldown=100, min_lr=0, eps=1e-08)
 
 with torch.no_grad():
     priors = priorbox.forward()
@@ -78,15 +81,13 @@ if __name__ == '__main__':
         if start_iter > step:
             step_index += 1
 
-
     batch_iterator_val = iter(data.DataLoader(dataset_val,
                                           batch_size = 8,
                                           shuffle=True,
                                           num_workers=cfg.train_cfg.num_workers,
                                           collate_fn=detection_collate
                                           ))
-    images_val, targets_val = batch_iterator_val.next()  
-                                          
+    images_val, targets_val = batch_iterator_val.next()                                       
 
     for iteration in range(start_iter, max_iter):
         if iteration % epoch_size == 0:
@@ -98,14 +99,12 @@ if __name__ == '__main__':
             
 
             if epoch % cfg.model.save_epochs == 0:
-                save_checkpoint(net, cfg, final=False,
-                                datasetname=args.dataset, epoch=epoch)
+                save_checkpoint(net, optimizer, cfg, final=False, datasetname=args.dataset, epoch=epoch)
             epoch += 1
         load_t0 = time.time()
         if iteration in stepvalues:
             step_index += 1
-        lr = adjust_learning_rate(
-            optimizer, step_index, cfg, args.dataset)
+        # lr = adjust_learning_rate(optimizer, step_index, cfg, args.dataset)
         images, targets = next(batch_iterator)
         
         if cfg.train_cfg.cuda:
@@ -121,14 +120,19 @@ if __name__ == '__main__':
         loss = loss_l + loss_c
         loss_l_val, loss_c_val = criterion(out_val, priors, targets_val)
         loss_val = loss_l_val + loss_c_val
+        loss.backward()
+        optimizer.step()
+        if iteration % epoch_size == 0:
+          scheduler.step(loss_val)
+        for param_group in optimizer.param_groups:
+            lr = param_group['lr']
         write_logger({'loc_loss': loss_l.item(),
                       'conf_loss': loss_c.item(),
                       'loc_loss_val': loss_l_val.item(),
                       'conf_loss_val': loss_c_val.item(),
                       'loss': loss.item(),
-                      'loss_val': loss_val.item()}, logger, iteration, status=args.tensorboard)
-        loss.backward()
-        optimizer.step()
+                      'loss_val': loss_val.item(),
+                      'lr':lr}, logger, iteration, status=args.tensorboard)
         load_t1 = time.time()
         print_train_log(iteration, cfg.train_cfg.print_epochs,
                         [time.ctime(), epoch, iteration % epoch_size, epoch_size, iteration, load_t1 - load_t0, lr,
